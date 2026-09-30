@@ -1,0 +1,1435 @@
+// =========================================
+// API CONFIGURATION
+// =========================================
+
+const API_BASE_URL = "http://127.0.0.1:8000/api";
+
+
+// =========================================
+// DOM ELEMENTS
+// =========================================
+
+// Login
+const loginSection = document.getElementById("loginSection");
+const optimizerSection = document.getElementById("optimizerSection");
+
+const usernameInput = document.getElementById("username");
+const passwordInput = document.getElementById("password");
+
+const loginBtn = document.getElementById("loginBtn");
+const loginMessage = document.getElementById("loginMessage");
+
+
+// User
+const loggedInUser = document.getElementById("loggedInUser");
+const logoutBtn = document.getElementById("logoutBtn");
+
+
+// Mode
+const fastModeBtn = document.getElementById("fastModeBtn");
+const analyzeModeBtn = document.getElementById("analyzeModeBtn");
+
+
+// Prompt
+const promptInput = document.getElementById("prompt");
+
+
+// Settings
+const aiModel = document.getElementById("aiModel");
+
+const optimizationLevel =
+    document.getElementById("optimizationLevel");
+
+const optimizationLevelGroup =
+    document.getElementById("optimizationLevelGroup");
+
+
+// Action
+const optimizeBtn =
+    document.getElementById("optimizeBtn");
+const insertBtn =
+    document.getElementById("insertBtn");
+const optimizeMessage =
+    document.getElementById("optimizeMessage");
+
+
+// Fast result
+const fastResult =
+    document.getElementById("fastResult");
+
+const fastOptimizedPrompt =
+    document.getElementById("fastOptimizedPrompt");
+
+const fastStatus =
+    document.getElementById("fastStatus");
+
+
+// Analysis result
+const analysisResult =
+    document.getElementById("analysisResult");
+
+const originalTokens =
+    document.getElementById("originalTokens");
+
+const optimizedTokens =
+    document.getElementById("optimizedTokens");
+
+const tokensSaved =
+    document.getElementById("tokensSaved");
+
+const reductionPercent =
+    document.getElementById("reductionPercent");
+
+const semanticAccuracy =
+    document.getElementById("semanticAccuracy");
+
+const qualityRating =
+    document.getElementById("qualityRating");
+
+const optimizationScore =
+    document.getElementById("optimizationScore");
+
+const costSaved =
+    document.getElementById("costSaved");
+
+const optimizedPrompt =
+    document.getElementById("optimizedPrompt");
+
+const originalPrompt =
+    document.getElementById("originalPrompt");
+
+
+// =========================================
+// CURRENT MODE
+// =========================================
+
+let currentMode = "fast";
+
+
+// =========================================
+// PAGE LOAD
+// =========================================
+
+document.addEventListener(
+    "DOMContentLoaded",
+    async () => {
+
+        const data =
+            await chrome.storage.local.get([
+                "accessToken",
+                "refreshToken",
+                "username"
+            ]);
+
+        if (data.accessToken) {
+
+            loggedInUser.textContent =
+                data.username || "User";
+
+            showOptimizer();
+
+            // Load latest ChatGPT prompt
+            await loadDetectedPrompt();
+
+        } else {
+
+            showLogin();
+
+        }
+    }
+);
+
+
+// =========================================
+// LOAD LATEST CHATGPT PROMPT
+// =========================================
+
+async function loadDetectedPrompt() {
+
+    try {
+
+        const data =
+            await chrome.storage.local.get([
+                "detectedPrompt",
+                "detectedSource"
+            ]);
+
+        if (
+            data.detectedPrompt &&
+            data.detectedSource === "chatgpt"
+        ) {
+
+            promptInput.value =
+                data.detectedPrompt;
+
+            console.log(
+                "SGP POPUP: Loaded latest ChatGPT prompt:",
+                data.detectedPrompt
+            );
+
+        } else {
+
+            promptInput.value = "";
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            "SGP POPUP: Could not load detected prompt:",
+            error
+        );
+
+    }
+}
+
+
+// =========================================
+// LOGIN
+// =========================================
+
+loginBtn.addEventListener(
+    "click",
+    login
+);
+
+
+// Allow Enter key
+passwordInput.addEventListener(
+    "keydown",
+    (event) => {
+
+        if (event.key === "Enter") {
+            login();
+        }
+
+    }
+);
+
+
+async function login() {
+
+    const username =
+        usernameInput.value.trim();
+
+    const password =
+        passwordInput.value;
+
+
+    if (!username || !password) {
+
+        showLoginMessage(
+            "Please enter username and password.",
+            true
+        );
+
+        return;
+    }
+
+
+    loginBtn.disabled = true;
+
+    loginBtn.textContent =
+        "Logging in...";
+
+
+    showLoginMessage(
+        "",
+        false
+    );
+
+
+    try {
+
+        const response =
+            await fetch(
+                `${API_BASE_URL}/login/`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            let message =
+                data.message ||
+                "Login failed.";
+
+
+            if (
+                typeof data === "object"
+            ) {
+
+                if (data.detail) {
+                    message =
+                        data.detail;
+                }
+
+                if (
+                    data.non_field_errors
+                ) {
+
+                    message =
+                        data.non_field_errors[0];
+
+                }
+
+            }
+
+
+            throw new Error(
+                message
+            );
+        }
+
+
+        // =====================================
+        // SAVE JWT
+        // =====================================
+
+        await chrome.storage.local.set({
+
+            accessToken:
+                data.access,
+
+            refreshToken:
+                data.refresh,
+
+            username:
+                data.username ||
+                username
+
+        });
+
+
+        loggedInUser.textContent =
+            data.username ||
+            username;
+
+
+        passwordInput.value = "";
+
+
+        showOptimizer();
+
+
+        // Load current ChatGPT prompt
+        await loadDetectedPrompt();
+
+
+    } catch (error) {
+
+        console.error(
+            "Login Error:",
+            error
+        );
+
+
+        showLoginMessage(
+            error.message ||
+            "Unable to login.",
+            true
+        );
+
+
+    } finally {
+
+        loginBtn.disabled = false;
+
+        loginBtn.textContent =
+            "Login";
+
+    }
+
+}
+
+
+// =========================================
+// CHATGPT PROMPT DETECTION
+// =========================================
+
+chrome.runtime.onMessage.addListener(
+    (message) => {
+
+        console.log(
+            "SGP POPUP RECEIVED:",
+            message
+        );
+
+
+        if (
+            message &&
+            message.type ===
+                "PROMPT_DETECTED" &&
+            message.prompt
+        ) {
+
+            promptInput.value =
+                message.prompt;
+
+
+            console.log(
+                "SGP POPUP: Latest prompt:",
+                message.prompt
+            );
+
+
+            showOptimizeMessage(
+                "Prompt detected from ChatGPT.",
+                false
+            );
+
+        }
+
+    }
+);
+
+
+// =========================================
+// MODE SELECTION
+// =========================================
+
+fastModeBtn.addEventListener(
+    "click",
+    () => setMode("fast")
+);
+
+
+analyzeModeBtn.addEventListener(
+    "click",
+    () => setMode("analyze")
+);
+
+
+function setMode(mode) {
+
+    currentMode = mode;
+
+
+    // =====================================
+    // FAST MODE
+    // =====================================
+
+    if (mode === "fast") {
+
+        fastModeBtn.classList.add(
+            "active"
+        );
+
+        analyzeModeBtn.classList.remove(
+            "active"
+        );
+
+
+        optimizeBtn.textContent =
+            "Fast Optimize";
+
+
+        optimizationLevelGroup.classList.remove(
+            "hidden"
+        );
+
+
+        analysisResult.classList.add(
+            "hidden"
+        );
+
+
+        return;
+    }
+
+
+    // =====================================
+    // ANALYZE MODE
+    // =====================================
+
+    fastModeBtn.classList.remove(
+        "active"
+    );
+
+    analyzeModeBtn.classList.add(
+        "active"
+    );
+
+
+    optimizeBtn.textContent =
+        "Analyze & Optimize";
+
+
+    optimizationLevelGroup.classList.remove(
+        "hidden"
+    );
+
+
+    fastResult.classList.add(
+        "hidden"
+    );
+
+}
+
+// =========================================
+// INSERT OPTIMIZED PROMPT INTO CHATGPT
+// =========================================
+
+insertBtn.addEventListener(
+    "click",
+    insertOptimizedPromptIntoChatGPT
+);
+// =========================================
+// OPTIMIZE BUTTON
+// =========================================
+
+optimizeBtn.addEventListener(
+    "click",
+    optimizePrompt
+);
+
+
+async function optimizePrompt() {
+
+    const prompt =
+        promptInput.value.trim();
+
+
+    const model =
+        aiModel.value;
+
+
+    const level =
+        optimizationLevel.value;
+
+
+    // =====================================
+    // VALIDATION
+    // =====================================
+
+    if (!prompt) {
+
+        showOptimizeMessage(
+            "Please enter a prompt.",
+            true
+        );
+
+        promptInput.focus();
+
+        return;
+    }
+
+
+    if (prompt.length < 5) {
+
+        showOptimizeMessage(
+            "Prompt must contain at least 5 characters.",
+            true
+        );
+
+        return;
+    }
+
+
+    // =====================================
+    // UI STATE
+    // =====================================
+
+    optimizeBtn.disabled = true;
+
+
+    optimizeBtn.textContent =
+        currentMode === "fast"
+            ? "Optimizing..."
+            : "Analyzing...";
+
+
+    showOptimizeMessage(
+        "Processing your prompt...",
+        false
+    );
+
+
+    fastResult.classList.add(
+        "hidden"
+    );
+
+
+    analysisResult.classList.add(
+        "hidden"
+    );
+
+
+    try {
+
+        // =================================
+        // GET ACCESS TOKEN
+        // =================================
+
+        const storage =
+            await chrome.storage.local.get([
+                "accessToken"
+            ]);
+
+
+        if (!storage.accessToken) {
+
+            showLogin();
+
+            throw new Error(
+                "Session expired. Please login again."
+            );
+
+        }
+
+
+        // =================================
+        // SELECT API
+        // =================================
+
+        let endpoint;
+
+
+        if (currentMode === "fast") {
+
+            endpoint =
+                `${API_BASE_URL}/prompting/`;
+
+        } else {
+
+            endpoint =
+                `${API_BASE_URL}/optimize/`;
+
+        }
+
+
+        // =================================
+        // API REQUEST
+        // =================================
+
+        const response =
+            await fetch(
+                endpoint,
+                {
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json",
+
+                        "Authorization":
+                            `Bearer ${storage.accessToken}`
+
+                    },
+
+                    body: JSON.stringify({
+
+                        prompt: prompt,
+
+                        ai_model: model,
+
+                        optimization_level:
+                            level
+
+                    })
+
+                }
+            );
+
+
+        // =================================
+        // HANDLE TOKEN EXPIRY
+        // =================================
+
+        if (response.status === 401) {
+
+            await chrome.storage.local.remove([
+                "accessToken",
+                "refreshToken",
+                "username"
+            ]);
+
+
+            showLogin();
+
+
+            throw new Error(
+                "Session expired. Please login again."
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        // =================================
+        // API ERROR
+        // =================================
+
+        if (!response.ok) {
+
+            let message =
+                data.message ||
+                data.detail ||
+                "Optimization failed.";
+
+
+            throw new Error(
+                message
+            );
+
+        }
+
+
+        // =================================
+        // SUCCESS
+        // =================================
+
+        if (!data.success) {
+
+            throw new Error(
+                data.message ||
+                "Optimization failed."
+            );
+
+        }
+
+
+        // =================================
+        // DISPLAY RESULT
+        // =================================
+
+        if (currentMode === "fast") {
+
+            displayFastResult(
+                data
+            );
+
+        } else {
+
+            displayAnalysisResult(
+                data
+            );
+
+        }
+
+
+        showOptimizeMessage(
+            "Optimization completed successfully.",
+            false
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Optimization Error:",
+            error
+        );
+
+
+        showOptimizeMessage(
+            error.message ||
+            "Something went wrong.",
+            true
+        );
+
+
+    } finally {
+
+        optimizeBtn.disabled = false;
+
+
+        optimizeBtn.textContent =
+            currentMode === "fast"
+                ? "Fast Optimize"
+                : "Analyze & Optimize";
+
+    }
+
+}
+
+
+// =========================================
+// FAST RESULT
+// =========================================
+
+function displayFastResult(data) {
+
+    fastResult.classList.remove(
+        "hidden"
+    );
+
+
+    const optimized =
+        data.optimized_prompt ||
+        "No optimized prompt returned.";
+
+
+    fastOptimizedPrompt.textContent =
+        optimized;
+
+
+    fastStatus.textContent =
+        data.status ||
+        "Processing";
+
+
+    // =====================================
+    // SEND OPTIMIZED PROMPT TO CHATGPT
+    // =====================================
+
+    chrome.tabs.query(
+        {
+            active: true,
+            currentWindow: true
+        },
+        (tabs) => {
+
+            if (
+                !tabs ||
+                !tabs[0]
+            ) {
+
+                return;
+
+            }
+
+
+            chrome.tabs.sendMessage(
+                tabs[0].id,
+                {
+                    type:
+                        "INSERT_OPTIMIZED_PROMPT",
+
+                    prompt:
+                        optimized
+                }
+            ).catch(
+                (error) => {
+
+                    console.log(
+                        "Could not send optimized prompt to ChatGPT:",
+                        error
+                    );
+
+                }
+            );
+
+        }
+    );
+
+}
+
+
+// =========================================
+// ANALYSIS RESULT
+// =========================================
+
+function displayAnalysisResult(data) {
+
+    analysisResult.classList.remove(
+        "hidden"
+    );
+
+
+    // =====================================
+    // TOKEN VALUES
+    // =====================================
+
+    const original =
+        Number(
+            data.original_tokens || 0
+        );
+
+
+    const optimized =
+        Number(
+            data.optimized_tokens || 0
+        );
+
+
+    const saved =
+        Number(
+            data.tokens_saved || 0
+        );
+
+
+    // =====================================
+    // REDUCTION %
+// =========================================
+
+    let reduction = 0;
+
+
+    if (original > 0) {
+
+        reduction =
+            (
+                (original - optimized) /
+                original
+            ) * 100;
+
+    }
+
+
+    // =====================================
+    // DISPLAY
+    // =====================================
+
+    originalTokens.textContent =
+        formatNumber(
+            original
+        );
+
+
+    optimizedTokens.textContent =
+        formatNumber(
+            optimized
+        );
+
+
+    tokensSaved.textContent =
+        formatNumber(
+            saved
+        );
+
+
+    reductionPercent.textContent =
+        `${reduction.toFixed(2)}%`;
+
+
+    semanticAccuracy.textContent =
+        formatValue(
+            data.semantic_accuracy
+        );
+
+
+    qualityRating.textContent =
+        formatValue(
+            data.quality_rating
+        );
+
+
+    optimizationScore.textContent =
+        formatValue(
+            data.optimization_score
+        );
+
+
+    costSaved.textContent =
+        formatCost(
+            data.estimated_cost_saved
+        );
+
+
+    optimizedPrompt.textContent =
+        data.optimized_prompt ||
+        "No optimized prompt returned.";
+
+
+    originalPrompt.textContent =
+        data.original_prompt ||
+        "No original prompt returned.";
+
+}
+
+
+// =========================================
+// FORMAT NUMBER
+// =========================================
+
+function formatNumber(value) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+
+        return "-";
+
+    }
+
+
+    return Number(value).toLocaleString();
+
+}
+
+
+// =========================================
+// FORMAT VALUE
+// =========================================
+
+function formatValue(value) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+
+        return "-";
+
+    }
+
+
+    return value;
+
+}
+
+
+// =========================================
+// FORMAT COST
+// =========================================
+
+function formatCost(value) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+
+        return "-";
+
+    }
+
+
+    const number =
+        Number(value);
+
+
+    if (Number.isNaN(number)) {
+
+        return value;
+
+    }
+
+
+    return `$${number.toFixed(6)}`;
+
+}
+
+
+// =========================================
+// LOGOUT
+// =========================================
+
+logoutBtn.addEventListener(
+    "click",
+    async () => {
+
+        await chrome.storage.local.remove([
+            "accessToken",
+            "refreshToken",
+            "username",
+            "detectedPrompt",
+            "detectedAt",
+            "detectedSource"
+        ]);
+
+
+        promptInput.value = "";
+
+
+        showLogin();
+
+    }
+);
+
+
+// =========================================
+// SHOW LOGIN
+// =========================================
+
+function showLogin() {
+
+    loginSection.classList.remove(
+        "hidden"
+    );
+
+
+    optimizerSection.classList.add(
+        "hidden"
+    );
+
+
+    usernameInput.focus();
+
+}
+
+
+// =========================================
+// SHOW OPTIMIZER
+// =========================================
+
+function showOptimizer() {
+
+    loginSection.classList.add(
+        "hidden"
+    );
+
+
+    optimizerSection.classList.remove(
+        "hidden"
+    );
+
+
+    setMode(
+        currentMode
+    );
+
+}
+
+
+// =========================================
+// LOGIN MESSAGE
+// =========================================
+
+function showLoginMessage(
+    message,
+    isError
+) {
+
+    loginMessage.textContent =
+        message;
+
+
+    loginMessage.style.color =
+        isError
+            ? "#dc2626"
+            : "#16a34a";
+
+}
+
+
+// =========================================
+// OPTIMIZATION MESSAGE
+// =========================================
+
+function showOptimizeMessage(
+    message,
+    isError
+) {
+
+    optimizeMessage.textContent =
+        message;
+
+
+    optimizeMessage.style.color =
+        isError
+            ? "#dc2626"
+            : "#16a34a";
+
+
+}
+// ============================================================
+// CHATGPT DETECTED PROMPT
+// ============================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    loadChatGPTPrompt();
+
+    // Receive prompt if popup is already open
+    chrome.runtime.onMessage.addListener((message) => {
+
+        if (
+            message.action === "PROMPT_DETECTED" &&
+            message.source === "chatgpt"
+        ) {
+
+            console.log(
+                "Popup received ChatGPT prompt:",
+                message.prompt
+            );
+
+            setPromptInPopup(
+                message.prompt || ""
+            );
+        }
+    });
+});
+
+
+// ============================================================
+// LOAD PROMPT FROM STORAGE
+// ============================================================
+
+function loadChatGPTPrompt() {
+
+    chrome.storage.local.get(
+        [
+            "detectedPrompt",
+            "source"
+        ],
+        (data) => {
+
+            console.log(
+                "Stored ChatGPT prompt:",
+                data
+            );
+
+
+            if (
+                data.source === "chatgpt" &&
+                data.detectedPrompt
+            ) {
+
+                setPromptInPopup(
+                    data.detectedPrompt
+                );
+            }
+        }
+    );
+}
+
+
+// ============================================================
+// PUT DETECTED PROMPT INTO POPUP
+// ============================================================
+
+function setPromptInPopup(prompt) {
+
+    /*
+     * Try your existing prompt elements.
+     */
+
+    const selectors = [
+        "#prompt",
+        "#promptInput",
+        "#userPrompt",
+        "#detectedPrompt",
+        "#directPrompt",
+        "textarea"
+    ];
+
+
+    let input = null;
+
+
+    for (const selector of selectors) {
+
+        const element =
+            document.querySelector(selector);
+
+
+        if (element) {
+
+            input = element;
+
+            break;
+        }
+    }
+
+
+    if (!input) {
+
+        console.warn(
+            "SGP: Popup prompt textbox not found."
+        );
+
+        return;
+    }
+
+
+    // --------------------------------------------------------
+    // SET VALUE
+    // --------------------------------------------------------
+
+    input.value =
+        prompt;
+
+
+    // --------------------------------------------------------
+    // TRIGGER INPUT EVENT
+    // --------------------------------------------------------
+
+    input.dispatchEvent(
+        new Event(
+            "input",
+            {
+                bubbles: true
+            }
+        )
+    );
+
+
+    input.dispatchEvent(
+        new Event(
+            "change",
+            {
+                bubbles: true
+            }
+        )
+    );
+
+
+    console.log(
+        "SGP: Prompt inserted into popup."
+    );
+}
+// ============================================================
+// CHATGPT PROMPT DETECTION
+// Load the prompt detected by content.js
+// ============================================================
+
+function loadDetectedChatGPTPrompt() {
+    chrome.storage.local.get(
+        ["detectedPrompt", "source"],
+        (data) => {
+
+            console.log("SGP popup storage:", data);
+
+            if (
+                data.source === "chatgpt" &&
+                typeof data.detectedPrompt === "string"
+            ) {
+                const promptInput = document.getElementById("prompt");
+
+                if (!promptInput) {
+                    console.warn("SGP: #prompt textarea not found.");
+                    return;
+                }
+
+                promptInput.value = data.detectedPrompt;
+
+                // Trigger input event so your existing
+                // character counter updates.
+                promptInput.dispatchEvent(
+                    new Event("input", { bubbles: true })
+                );
+
+                promptInput.dispatchEvent(
+                    new Event("change", { bubbles: true })
+                );
+
+                console.log(
+                    "SGP: ChatGPT prompt loaded into extension:",
+                    data.detectedPrompt
+                );
+            }
+        }
+    );
+}
+
+
+// ============================================================
+// RECEIVE LIVE PROMPT WHILE POPUP IS OPEN
+// ============================================================
+
+chrome.runtime.onMessage.addListener((message) => {
+
+    if (
+        message.action === "PROMPT_DETECTED" &&
+        message.source === "chatgpt"
+    ) {
+
+        console.log(
+            "SGP popup received prompt:",
+            message.prompt
+        );
+
+        const promptInput = document.getElementById("prompt");
+
+        if (!promptInput) {
+            console.warn("SGP: #prompt textarea not found.");
+            return;
+        }
+
+        promptInput.value = message.prompt || "";
+
+        // Update existing character counter
+        promptInput.dispatchEvent(
+            new Event("input", { bubbles: true })
+        );
+
+        promptInput.dispatchEvent(
+            new Event("change", { bubbles: true })
+        );
+    }
+});
+
+
+// ============================================================
+// WHEN POPUP OPENS
+// ============================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    console.log("SGP popup loaded.");
+
+    // Give storage a moment in case content.js
+    // has just detected the prompt.
+    setTimeout(() => {
+        loadDetectedChatGPTPrompt();
+    }, 100);
+});
+
+async function insertOptimizedPromptIntoChatGPT() {
+
+    const optimized =
+        fastOptimizedPrompt.textContent.trim();
+
+    if (!optimized) {
+        showOptimizeMessage(
+            "No optimized prompt available.",
+            true
+        );
+        return;
+    }
+
+    try {
+
+        const tabs = await chrome.tabs.query({
+            active: true,
+            currentWindow: true
+        });
+
+        if (!tabs || !tabs[0] || !tabs[0].id) {
+            throw new Error(
+                "Could not find the active ChatGPT tab."
+            );
+        }
+
+        await chrome.tabs.sendMessage(
+            tabs[0].id,
+            {
+                action: "INSERT_OPTIMIZED_PROMPT",
+                prompt: optimized
+            }
+        )
+
+        showOptimizeMessage(
+            "Optimized prompt inserted into ChatGPT.",
+            false
+        );
+
+    } catch (error) {
+
+        console.error(
+            "SGP insert error:",
+            error
+        );
+
+        showOptimizeMessage(
+            "Could not insert into ChatGPT. Make sure ChatGPT is open.",
+            true
+        );
+    }
+}
