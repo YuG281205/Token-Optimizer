@@ -214,7 +214,24 @@ class RegisterAPIView(APIView):
             )
 
             email.attach_alternative(html_content, "text/html")
-            email.send()
+            try:
+                result = email.send(fail_silently=False)
+
+                print("========== EMAIL DEBUG ==========")
+                print("EMAIL RESULT:", result)
+                print("FROM:", settings.DEFAULT_FROM_EMAIL)
+                print("TO:", user.email)
+                print("EMAIL HOST:", settings.EMAIL_HOST)
+                print("EMAIL PORT:", settings.EMAIL_PORT)
+                print("EMAIL TLS:", settings.EMAIL_USE_TLS)
+                print("=================================")
+
+            except Exception as e:
+                print("========== EMAIL ERROR ==========")
+                print("ERROR TYPE:", type(e).__name__)
+                print("ERROR:", str(e))
+                print("================================")
+                raise
 
             return Response(
                 {
