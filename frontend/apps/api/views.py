@@ -231,9 +231,21 @@ class RegisterAPIView(APIView):
             )
 
             if response.status_code >= 400:
-                    raise Exception(
-                        f"Brevo API error: {response.status_code} - {response.text}"
-                    )
+                raise Exception(
+                    f"Brevo API error: {response.status_code} - {response.text}"
+                )
+
+            return Response(
+                {
+                    "message": "Registration successful. Please check your email."
+                },
+                status=status.HTTP_201_CREATED
+            )
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class VerifyEmailAPIView(APIView):
