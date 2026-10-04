@@ -1,6 +1,5 @@
 const API_BASE_URL =
-    "http://127.0.0.1:8000/api";
-
+    "https://token-optimizer-nsi6.onrender.com/api";
 
 console.log(
     "SGP Token Optimizer background service started"

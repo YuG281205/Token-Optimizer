@@ -66,7 +66,7 @@ optimizeBtn.addEventListener("click", async () => {
         : Promise.resolve();
 
     const fetchPromise = fetch(
-        "http://127.0.0.1:8000/api/optimize/",
+        "api/optimize/",
         {
             method: "POST",
 
