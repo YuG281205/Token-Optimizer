@@ -47,7 +47,7 @@ class RegisterAPIView(APIView):
             token = default_token_generator.make_token(user)
 
             verification_link = (
-                f"http://127.0.0.1:8000/api/verify-email/{uid}/{token}/"
+                f"https://token-optimizer-nsi6.onrender.com/api/verify-email/{uid}/{token}/"
             )
 
             subject = "Verify Your Email"
