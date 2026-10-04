@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
-
+import requests
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import (
@@ -13,7 +13,7 @@ from django.utils.http import (
 )
 from django.utils.encoding import force_bytes
 
-from django.core.mail import EmailMultiAlternatives
+
 from django.conf import settings
 
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -206,32 +206,28 @@ class RegisterAPIView(APIView):
             </html>
             """
 
-            email = EmailMultiAlternatives(
-                subject,
-                text_content,
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email]
+            response = requests.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "from": settings.DEFAULT_FROM_EMAIL,
+                    "to": [user.email],
+                    "subject": subject,
+                    "text": text_content,
+                    "html": html_content,
+                },
+                timeout=10,
             )
 
-            email.attach_alternative(html_content, "text/html")
-            try:
-                result = email.send(fail_silently=False)
+            if response.status_code >= 400:
+                raise Exception(
+                    f"Resend API error: {response.status_code} - {response.text}"
+                )
 
-                print("========== EMAIL DEBUG ==========")
-                print("EMAIL RESULT:", result)
-                print("FROM:", settings.DEFAULT_FROM_EMAIL)
-                print("TO:", user.email)
-                print("EMAIL HOST:", settings.EMAIL_HOST)
-                print("EMAIL PORT:", settings.EMAIL_PORT)
-                print("EMAIL TLS:", settings.EMAIL_USE_TLS)
-                print("=================================")
-
-            except Exception as e:
-                print("========== EMAIL ERROR ==========")
-                print("ERROR TYPE:", type(e).__name__)
-                print("ERROR:", str(e))
-                print("================================")
-                raise
+           
 
             return Response(
                 {
