@@ -66,7 +66,7 @@ optimizeBtn.addEventListener("click", async () => {
         : Promise.resolve();
 
     const fetchPromise = fetch(
-        "api/optimize/",
+        "/api/optimize/",
         {
             method: "POST",
 
