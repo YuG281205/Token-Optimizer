@@ -22,11 +22,11 @@ document.getElementById('signupform').addEventListener("submit",async function (
     if (response.ok) {
     alert("Registration Successful! Please verify your email.");
 
-    window.open("https://mail.google.com/", "_blank");
+    window.location.href = "mailto:";
 
     setTimeout(() => {
         window.location.href = "/check_email/";
-    }, 1000);
+    }, 3000);
 } else {
 
     if (data.username) {

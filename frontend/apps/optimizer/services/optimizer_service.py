@@ -371,9 +371,9 @@ class OptimizerService:
             optimized["total_tokens"]
         )
 
-        tokens_saved = (
-            original["input_tokens"]
-            - optimized["input_tokens"]
+        tokens_saved = max(
+            original_tokens - optimized_tokens,
+            0
         )
 
         # ======================================================
