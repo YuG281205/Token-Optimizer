@@ -22,7 +22,7 @@ document.getElementById('signupform').addEventListener("submit",async function (
     if (response.ok) {
     alert("Registration Successful! Please verify your email.");
 
-    window.location.href = "mailto:";
+    window.location.href = `mailto:${email}`;
 
     setTimeout(() => {
         window.location.href = "/check_email/";
