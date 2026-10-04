@@ -29,8 +29,7 @@ playwright_output_*/
 *.har
 *.zip
 
-# Screenshots (optional)
-*.png
+
 
 # Logs (optional)
 *.log
