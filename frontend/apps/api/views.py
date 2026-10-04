@@ -206,34 +206,34 @@ class RegisterAPIView(APIView):
             </html>
             """
 
-        response = requests.post(
-            "https://api.brevo.com/v3/smtp/email",
-            headers={
-                "api-key": settings.BREVO_API_KEY,
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            json={
-                "sender": {
-                    "name": settings.BREVO_SENDER_NAME,
-                    "email": settings.BREVO_SENDER_EMAIL,
+            response = requests.post(
+                "https://api.brevo.com/v3/smtp/email",
+                headers={
+                    "api-key": settings.BREVO_API_KEY,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
                 },
-                "to": [
-                    {
-                        "email": user.email,
-                    }
-                ],
-                "subject": subject,
-                "textContent": text_content,
-                "htmlContent": html_content,
-            },
-            timeout=10,
-        )
+                json={
+                    "sender": {
+                        "name": settings.BREVO_SENDER_NAME,
+                        "email": settings.BREVO_SENDER_EMAIL,
+                    },
+                    "to": [
+                        {
+                            "email": user.email,
+                        }
+                    ],
+                    "subject": subject,
+                    "textContent": text_content,
+                    "htmlContent": html_content,
+                },
+                timeout=10,
+            )
 
-        if response.status_code >= 400:
-                raise Exception(
-                    f"Brevo API error: {response.status_code} - {response.text}"
-                )
+            if response.status_code >= 400:
+                    raise Exception(
+                        f"Brevo API error: {response.status_code} - {response.text}"
+                    )
 
 
 class VerifyEmailAPIView(APIView):
