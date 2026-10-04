@@ -308,12 +308,9 @@ CSRF_TRUSTED_ORIGINS = [
 # EMAIL CONFIGURATION - RESEND
 # ============================================================
 
-RESEND_API_KEY = os.getenv("RESEND_API_KEY")
-
-DEFAULT_FROM_EMAIL = os.getenv(
-    "DEFAULT_FROM_EMAIL",
-    "onboarding@resend.dev"
-)
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
+BREVO_SENDER_EMAIL = os.getenv("BREVO_SENDER_EMAIL")
+BREVO_SENDER_NAME = os.getenv("BREVO_SENDER_NAME", "TokenGuard")
 # ============================================================
 # AI API CONFIGURATION
 # ============================================================

@@ -206,40 +206,34 @@ class RegisterAPIView(APIView):
             </html>
             """
 
-            response = requests.post(
-                "https://api.resend.com/emails",
-                headers={
-                    "Authorization": f"Bearer {settings.RESEND_API_KEY}",
-                    "Content-Type": "application/json",
+        response = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "api-key": settings.BREVO_API_KEY,
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            json={
+                "sender": {
+                    "name": settings.BREVO_SENDER_NAME,
+                    "email": settings.BREVO_SENDER_EMAIL,
                 },
-                json={
-                    "from": settings.DEFAULT_FROM_EMAIL,
-                    "to": [user.email],
-                    "subject": subject,
-                    "text": text_content,
-                    "html": html_content,
-                },
-                timeout=10,
-            )
-
-            if response.status_code >= 400:
-                raise Exception(
-                    f"Resend API error: {response.status_code} - {response.text}"
-                )
-
-           
-
-            return Response(
-                {
-                    "message": "Registration successful. Please check your email."
-                },
-                status=status.HTTP_201_CREATED
-            )
-
-        return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST
+                "to": [
+                    {
+                        "email": user.email,
+                    }
+                ],
+                "subject": subject,
+                "textContent": text_content,
+                "htmlContent": html_content,
+            },
+            timeout=10,
         )
+
+        if response.status_code >= 400:
+                raise Exception(
+                    f"Brevo API error: {response.status_code} - {response.text}"
+                )
 
 
 class VerifyEmailAPIView(APIView):
